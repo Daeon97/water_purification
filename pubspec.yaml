@@ -9,14 +9,13 @@ environment:
   sdk: '>=2.18.2 <3.0.0'
 
 dependencies:
-  flutter:
-    sdk: flutter
   cupertino_icons: ^1.0.2
-  flutter_blue: ^0.8.0
   hydrated_bloc: ^9.0.0
   equatable: ^2.0.5
   flutter_bloc: ^8.1.1
   rive: ^0.9.1
+  firebase_database: ^10.0.5
+  font_awesome_flutter: ^10.2.1
 
 dev_dependencies:
   flutter_test:

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'blocs/blocs.dart';
-import 'repositories/bluetooth_repository.dart';
+import 'repositories/database_ops_repository.dart';
 import 'screens/home_screen.dart';
 import 'utils/constants.dart';
 
@@ -16,6 +16,27 @@ class App extends StatelessWidget {
           child: MaterialApp(
             theme: ThemeData(
               scaffoldBackgroundColor: baseColor,
+              primaryColor: Colors.white,
+              primaryColorLight: Colors.white70,
+              primaryColorDark: Colors.white38,
+              textTheme: const TextTheme(
+                bodyLarge: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 56,
+                ),
+                bodyMedium: TextStyle(
+                  color: baseColor,
+                  fontSize: 24,
+                ),
+                bodySmall: TextStyle(
+                  color: baseColor,
+                  fontSize: 16,
+                ),
+              ),
+              progressIndicatorTheme: const ProgressIndicatorThemeData(
+                color: Colors.white54,
+                circularTrackColor: Colors.transparent,
+              ),
             ),
             onGenerateRoute: _routes,
           ),
@@ -23,15 +44,15 @@ class App extends StatelessWidget {
       );
 
   List<RepositoryProvider> get _repositoryProviders => [
-        RepositoryProvider<BluetoothRepository>(
-          create: (_) => const BluetoothRepository(),
+        RepositoryProvider<DatabaseOpsRepository>(
+          create: (_) => DatabaseOpsRepository(),
         ),
       ];
 
   List<BlocProvider> get _blocProviders => [
-        BlocProvider<BluetoothBloc>(
-          create: (bluetoothContext) => BluetoothBloc(
-            bluetoothContext.read<BluetoothRepository>(),
+        BlocProvider<DatabaseOpsBloc>(
+          create: (databaseOpsContext) => DatabaseOpsBloc(
+            databaseOpsContext.read<DatabaseOpsRepository>(),
           ),
         ),
       ];

@@ -5,8 +5,10 @@
 import FlutterMacOS
 import Foundation
 
-import flutter_blue
+import firebase_core
+import firebase_database
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
-  FlutterBluePlugin.register(with: registry.registrar(forPlugin: "FlutterBluePlugin"))
+  FLTFirebaseCorePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseCorePlugin"))
+  FLTFirebaseDatabasePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseDatabasePlugin"))
 }

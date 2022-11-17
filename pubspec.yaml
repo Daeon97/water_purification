@@ -9,6 +9,8 @@ environment:
   sdk: '>=2.18.2 <3.0.0'
 
 dependencies:
+  flutter:
+    sdk: flutter
   cupertino_icons: ^1.0.2
   hydrated_bloc: ^9.0.0
   equatable: ^2.0.5
@@ -16,11 +18,14 @@ dependencies:
   rive: ^0.9.1
   firebase_database: ^10.0.5
   font_awesome_flutter: ^10.2.1
+  json_annotation: ^4.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+  json_serializable: ^6.5.4
+  build_runner: ^2.3.2
 
 flutter:
   uses-material-design: true

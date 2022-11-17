@@ -12,238 +12,500 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late CurvedAnimation _curvedAnimation;
+  late Tween<double> _tween;
+  late Animation<double> _animation;
+
   late StateMachineController _stateMachineController;
-  late SMIInput<bool> _waterEnteringUvChamber;
-  late SMIInput<double> _waterInUvChamberLevel;
+
+  late SMIInput<bool> _waterEnteringUvChamberSMIInput;
+  late SMIInput<double> _waterInUvChamberLevelSMIInput;
 
   void _onInit(Artboard artboard) {
     final stateMachineController = StateMachineController.fromArtboard(
       artboard,
       liquidDownloadStateMachineName,
-    ) as StateMachineController
-      ..isActive = true;
+    ) as StateMachineController;
 
     artboard.addController(
       stateMachineController,
     );
 
-    _waterEnteringUvChamber = stateMachineController
-        .findInput<bool>(downloadingAnimation) as SMIInput<bool>;
-    _waterEnteringUvChamber.change(true);
+    _waterEnteringUvChamberSMIInput = stateMachineController
+        .findInput<bool>(downloadingSMIInput) as SMIInput<bool>;
 
-    _waterInUvChamberLevel = stateMachineController
-        .findInput<double>(progressAnimation) as SMIInput<double>;
-    _waterInUvChamberLevel.change(40.0);
+    _waterInUvChamberLevelSMIInput = stateMachineController
+        .findInput<double>(progressSMIInput) as SMIInput<double>;
 
     _stateMachineController = stateMachineController;
   }
 
   @override
   void initState() {
-    // BlocProvider.of<BluetoothBloc>(context).add(
-    //   const ScanForBluetoothDevicesEvent(),
-    // );
+    BlocProvider.of<ParamsBloc>(context).add(
+      const ListenParamsEvent(),
+    );
+    BlocProvider.of<WaterPurificationStagesBloc>(context).add(
+      const ListenWaterPurificationStagesEvent(),
+    );
+
+    _animationController = AnimationController(
+      duration: const Duration(
+        seconds: 3,
+      ),
+      vsync: this,
+    );
+    _curvedAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+      reverseCurve: Curves.easeOut,
+    );
+    _tween = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    );
+    _animation = _tween.animate(
+      _curvedAnimation,
+    );
+    _animationController.forward();
+
     super.initState();
+  }
+
+  // @override
+  // void didUpdateWidget(covariant HomeScreen oldWidget) {
+  //   if (widget != oldWidget) {
+  //     final begin = _tween.evaluate(_animationController);
+  //     // Update the value tween.
+  //     _tween = Tween<double>(
+  //       begin: begin,
+  //       end: 1,
+  //     );
+  //
+  //     _animationController
+  //       ..value = 0
+  //       ..forward();
+  //   }
+  //   super.didUpdateWidget(oldWidget);
+  // }
+
+  @override
+  void deactivate() {
+    BlocProvider.of<ParamsBloc>(context).add(
+      const StopListeningParamsEvent(),
+    );
+    BlocProvider.of<WaterPurificationStagesBloc>(context).add(
+      const StopListeningWaterPurificationStagesEvent(),
+    );
+    super.deactivate();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _stateMachineController.dispose();
 
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) =>
-      BlocListener<DatabaseOpsBloc, DatabaseOpsState>(
-        listener: (databaseOpsContext, databaseOpsState) {
-          //.
+  Widget build(BuildContext context) => BlocListener<ParamsBloc, ParamsState>(
+        listener: (_, paramsState) {
+          if (paramsState is GotParamsState) {
+            _waterInUvChamberLevelSMIInput.change(
+              paramsState.params.waterLevel.toDouble(),
+            );
+          }
         },
-        child: BlocBuilder<DatabaseOpsBloc, DatabaseOpsState>(
-          builder: (bluetoothContext, bluetoothState) => Scaffold(
-            body: SingleChildScrollView(
-              child: Column(
-                children: [
-                  // const SizedBox(
-                  //   height: 32,
-                  // ),
-                  // Padding(
-                  //   padding: const EdgeInsets.symmetric(
-                  //     horizontal: 16,
-                  //   ),
-                  //   child: Container(
-                  //     height: 64,
-                  //     decoration: BoxDecoration(
-                  //       borderRadius: BorderRadius.circular(
-                  //         32,
-                  //       ),
-                  //       color: Colors.white38,
-                  //     ),
-                  //   ),
-                  // ),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        height: 400,
-                        child: RiveAnimation.asset(
-                          liquidDownloadRiveAsset,
-                          onInit: _onInit,
+        child: BlocListener<WaterPurificationStagesBloc,
+            WaterPurificationStagesState>(
+          listener: (_, waterPurificationStagesState) {
+            if (waterPurificationStagesState is UncleanWaterEnteringState) {
+              _waterEnteringUvChamberSMIInput.change(true);
+            } else if (waterPurificationStagesState
+                is TreatingUncleanWaterState) {
+              _waterEnteringUvChamberSMIInput.change(false);
+            } else if (waterPurificationStagesState is CleanWaterLeavingState) {
+              if (waterPurificationStagesState.waterLevel.toDouble() == 100.0) {
+                _waterInUvChamberLevelSMIInput.change(99.5);
+                _waterEnteringUvChamberSMIInput.change(true);
+              }
+            }
+          },
+          child: Scaffold(
+            body: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          height: 400,
+                          width: 400,
+                          child: BlocBuilder<ParamsBloc, ParamsState>(
+                            builder: (_, paramsState) => RiveAnimation.asset(
+                              liquidDownloadRiveAsset,
+                              onInit: _onInit,
+                            ),
+                          ),
                         ),
-                      ),
-                      Text(
-                        '40%',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(
-                        height: 250,
-                        width: 250,
-                        child: CircularProgressIndicator(
-                          value: 0.4,
+                        Column(
+                          children: [
+                            BlocBuilder<ParamsBloc, ParamsState>(
+                              builder: (_, paramsState) =>
+                                  paramsState is GotParamsState &&
+                                          paramsState.params.waterLevel != 100.0
+                                      ? AnimatedBuilder(
+                                          animation: _animation,
+                                          builder: (_, child) => FadeTransition(
+                                            opacity: _animation,
+                                            child: child,
+                                          ),
+                                          child: BlocBuilder<
+                                              WaterPurificationStagesBloc,
+                                              WaterPurificationStagesState>(
+                                            builder:
+                                                (_, waterPurificationStagesState) =>
+                                                    Text(
+                                              '${paramsState.params.waterLevel.toStringAsFixed(
+                                                0,
+                                              )}%',
+                                              style: waterPurificationStagesState
+                                                      is TreatingUncleanWaterState
+                                                  ? const TextStyle(
+                                                      color: Colors.transparent,
+                                                      fontSize: 56,
+                                                    )
+                                                  : Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge,
+                                            ),
+                                          ),
+                                        )
+                                      : const Text(
+                                          '0%',
+                                          style: TextStyle(
+                                            color: Colors.transparent,
+                                            fontSize: 56,
+                                          ),
+                                        ),
+                            ),
+                            const SizedBox(
+                              height: 8,
+                            ),
+                            BlocBuilder<WaterPurificationStagesBloc,
+                                WaterPurificationStagesState>(
+                              builder: (_, waterPurificationStagesState) =>
+                                  waterPurificationStagesState
+                                          is TreatingUncleanWaterState
+                                      ? Container(
+                                          padding: const EdgeInsets.all(
+                                            4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              32,
+                                            ),
+                                            color: Colors.white38,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: const [
+                                              SizedBox(
+                                                height: 16,
+                                                width: 16,
+                                                child: RiveAnimation.asset(
+                                                  timerRiveAsset,
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: 8,
+                                              ),
+                                              Text(
+                                                '00:10',
+                                                style: TextStyle(
+                                                  color: timerTextColor,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : const SizedBox(
+                                          width: 0.0,
+                                          height: 0.0,
+                                        ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 32,
-                  ),
-                  Row(
-                    children: [
-                      const SizedBox(
-                        width: 16,
-                      ),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
+                        // SizedBox(
+                        //   height: 250,
+                        //   width: 250,
+                        //   child: BlocBuilder<ParamsBloc, ParamsState>(
+                        //     builder: (_, paramsState) =>
+                        //         paramsState is GotParamsState
+                        //             ? AnimatedBuilder(
+                        //                 animation: _animation,
+                        //                 builder: (_, child) => FadeTransition(
+                        //                   opacity: _animation,
+                        //                   child: child,
+                        //                 ),
+                        //                 child: CircularProgressIndicator(
+                        //                   value: paramsState.params.waterLevel /
+                        //                       100,
+                        //                   strokeWidth: 8,
+                        //                 ),
+                        //               )
+                        //             : const CircularProgressIndicator(
+                        //                 value: 0.0,
+                        //                 strokeWidth: 8,
+                        //               ),
+                        //   ),
+                        // ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                        ),
+                        Expanded(
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(
                               32,
                             ),
-                            color: Colors.black38,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                              16,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                SizedBox(
-                                  height: 64,
-                                  width: 64,
-                                  child: RiveAnimation.asset(
-                                    oxygenCompressorValveRiveAsset,
-                                    animations: [
-                                      animationOne,
+                            onTap: () {},
+                            child: BlocBuilder<ParamsBloc, ParamsState>(
+                              builder: (_, paramsState) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    32,
+                                  ),
+                                  color: paramsState is GotParamsState
+                                      ? paramsState.params.topValve
+                                          ? Colors.white30
+                                          : Colors.black26
+                                      : Colors.black26,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(
+                                    16,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            paramsState is GotParamsState
+                                                ? paramsState.params.topValve
+                                                    ? FontAwesomeIcons
+                                                        .faucetDrip
+                                                    : FontAwesomeIcons
+                                                        .dropletSlash
+                                                : FontAwesomeIcons.faucet,
+                                            color: paramsState is GotParamsState
+                                                ? paramsState.params.topValve
+                                                    ? Colors.white70
+                                                    : Colors.white54
+                                                : Colors.white54,
+                                            size: 16,
+                                          ),
+                                          const SizedBox(
+                                            width: 16,
+                                          ),
+                                          Text(
+                                            'Top Valve',
+                                            style: TextStyle(
+                                              color: paramsState
+                                                      is GotParamsState
+                                                  ? paramsState.params.topValve
+                                                      ? Colors.white70
+                                                      : Colors.white54
+                                                  : Colors.white54,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 8,
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 16,
+                                            height: 16,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: paramsState
+                                                      is GotParamsState
+                                                  ? paramsState.params.topValve
+                                                      ? Colors.green
+                                                      : Colors.white24
+                                                  : Colors.white24,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 8,
+                                          ),
+                                          Text(
+                                            paramsState is GotParamsState
+                                                ? paramsState.params.topValve
+                                                    ? 'Open'
+                                                    : 'Closed'
+                                                : 'Open',
+                                            style: TextStyle(
+                                              color: paramsState
+                                                      is GotParamsState
+                                                  ? paramsState.params.topValve
+                                                      ? Colors.white
+                                                      : Colors.white70
+                                                  : Colors.transparent,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                                Text(
-                                  'Top Valve',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                Text(
-                                  'Open',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(
-                        width: 16,
-                      ),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                              32,
-                            ),
-                            color: Colors.white70,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                              16,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const SizedBox(
-                                  height: 16,
-                                ),
-                                const SizedBox(
-                                  height: 32,
-                                  width: 32,
-                                  child: RiveAnimation.asset(
-                                    timerRiveAsset,
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: 16,
-                                ),
-                                Text(
-                                  '00:31',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
+                        const SizedBox(
+                          width: 16,
                         ),
-                      ),
-                      const SizedBox(
-                        width: 16,
-                      ),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
+                        Expanded(
+                          child: InkWell(
                             borderRadius: BorderRadius.circular(
                               32,
                             ),
-                            color: Colors.white12,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                              16,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                SizedBox(
-                                  height: 64,
-                                  width: 64,
-                                  child: RiveAnimation.asset(
-                                    oxygenCompressorValveRiveAsset,
-                                    animations: [
-                                      animationTwo,
+                            onTap: () {},
+                            child: BlocBuilder<ParamsBloc, ParamsState>(
+                              builder: (_, paramsState) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    32,
+                                  ),
+                                  color: paramsState is GotParamsState
+                                      ? paramsState.params.bottomValve
+                                          ? Colors.white30
+                                          : Colors.black26
+                                      : Colors.black26,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(
+                                    16,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            paramsState is GotParamsState
+                                                ? paramsState.params.bottomValve
+                                                    ? FontAwesomeIcons
+                                                        .faucetDrip
+                                                    : FontAwesomeIcons
+                                                        .dropletSlash
+                                                : FontAwesomeIcons.faucet,
+                                            color: paramsState is GotParamsState
+                                                ? paramsState.params.bottomValve
+                                                    ? Colors.white70
+                                                    : Colors.white54
+                                                : Colors.white54,
+                                            size: 16,
+                                          ),
+                                          const SizedBox(
+                                            width: 16,
+                                          ),
+                                          Text(
+                                            'Bottom Valve',
+                                            style: TextStyle(
+                                              color:
+                                                  paramsState is GotParamsState
+                                                      ? paramsState.params
+                                                              .bottomValve
+                                                          ? Colors.white70
+                                                          : Colors.white54
+                                                      : Colors.white54,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 8,
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 16,
+                                            height: 16,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color:
+                                                  paramsState is GotParamsState
+                                                      ? paramsState.params
+                                                              .bottomValve
+                                                          ? Colors.green
+                                                          : Colors.white24
+                                                      : Colors.white24,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 8,
+                                          ),
+                                          Text(
+                                            paramsState is GotParamsState
+                                                ? paramsState.params.bottomValve
+                                                    ? 'Open'
+                                                    : 'Closed'
+                                                : 'Open',
+                                            style: TextStyle(
+                                              color:
+                                                  paramsState is GotParamsState
+                                                      ? paramsState.params
+                                                              .bottomValve
+                                                          ? Colors.white
+                                                          : Colors.white70
+                                                      : Colors.transparent,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                                Text(
-                                  'Off',
-                                  style: TextStyle(
-                                    color: Colors.white12,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(
-                        width: 16,
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(
+                          width: 16,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 100,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

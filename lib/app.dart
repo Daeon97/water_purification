@@ -50,9 +50,15 @@ class App extends StatelessWidget {
       ];
 
   List<BlocProvider> get _blocProviders => [
-        BlocProvider<DatabaseOpsBloc>(
-          create: (databaseOpsContext) => DatabaseOpsBloc(
-            databaseOpsContext.read<DatabaseOpsRepository>(),
+        BlocProvider<ParamsBloc>(
+          create: (paramsContext) => ParamsBloc(
+            paramsContext.read<DatabaseOpsRepository>(),
+          ),
+        ),
+        BlocProvider<WaterPurificationStagesBloc>(
+          create: (waterPurificationStagesContext) =>
+              WaterPurificationStagesBloc(
+            waterPurificationStagesContext.read<DatabaseOpsRepository>(),
           ),
         ),
       ];

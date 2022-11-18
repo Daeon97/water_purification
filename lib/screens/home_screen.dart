@@ -14,11 +14,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late CurvedAnimation _curvedAnimation;
-  late Tween<double> _tween;
-  late Animation<double> _animation;
-
   late StateMachineController _stateMachineController;
 
   late SMIInput<bool> _waterEnteringUvChamberSMIInput;
@@ -52,45 +47,8 @@ class _HomeScreenState extends State<HomeScreen>
       const ListenWaterPurificationStagesEvent(),
     );
 
-    _animationController = AnimationController(
-      duration: const Duration(
-        seconds: 3,
-      ),
-      vsync: this,
-    );
-    _curvedAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-      reverseCurve: Curves.easeOut,
-    );
-    _tween = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    );
-    _animation = _tween.animate(
-      _curvedAnimation,
-    );
-    _animationController.forward();
-
     super.initState();
   }
-
-  // @override
-  // void didUpdateWidget(covariant HomeScreen oldWidget) {
-  //   if (widget != oldWidget) {
-  //     final begin = _tween.evaluate(_animationController);
-  //     // Update the value tween.
-  //     _tween = Tween<double>(
-  //       begin: begin,
-  //       end: 1,
-  //     );
-  //
-  //     _animationController
-  //       ..value = 0
-  //       ..forward();
-  //   }
-  //   super.didUpdateWidget(oldWidget);
-  // }
 
   @override
   void deactivate() {
@@ -105,7 +63,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
-    _animationController.dispose();
     _stateMachineController.dispose();
 
     super.dispose();
@@ -159,31 +116,23 @@ class _HomeScreenState extends State<HomeScreen>
                               builder: (_, paramsState) =>
                                   paramsState is GotParamsState &&
                                           paramsState.params.waterLevel != 100.0
-                                      ? AnimatedBuilder(
-                                          animation: _animation,
-                                          builder: (_, child) => FadeTransition(
-                                            opacity: _animation,
-                                            child: child,
-                                          ),
-                                          child: BlocBuilder<
-                                              WaterPurificationStagesBloc,
-                                              WaterPurificationStagesState>(
-                                            builder:
-                                                (_, waterPurificationStagesState) =>
-                                                    Text(
-                                              '${paramsState.params.waterLevel.toStringAsFixed(
-                                                0,
-                                              )}%',
-                                              style: waterPurificationStagesState
-                                                      is TreatingUncleanWaterState
-                                                  ? const TextStyle(
-                                                      color: Colors.transparent,
-                                                      fontSize: 56,
-                                                    )
-                                                  : Theme.of(context)
-                                                      .textTheme
-                                                      .bodyLarge,
-                                            ),
+                                      ? BlocBuilder<WaterPurificationStagesBloc,
+                                          WaterPurificationStagesState>(
+                                          builder:
+                                              (_, waterPurificationStagesState) =>
+                                                  Text(
+                                            '${paramsState.params.waterLevel.toStringAsFixed(
+                                              0,
+                                            )}%',
+                                            style: waterPurificationStagesState
+                                                    is TreatingUncleanWaterState
+                                                ? const TextStyle(
+                                                    color: Colors.transparent,
+                                                    fontSize: 56,
+                                                  )
+                                                : Theme.of(context)
+                                                    .textTheme
+                                                    .bodyLarge,
                                           ),
                                         )
                                       : const Text(
@@ -242,30 +191,6 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ],
                         ),
-                        // SizedBox(
-                        //   height: 250,
-                        //   width: 250,
-                        //   child: BlocBuilder<ParamsBloc, ParamsState>(
-                        //     builder: (_, paramsState) =>
-                        //         paramsState is GotParamsState
-                        //             ? AnimatedBuilder(
-                        //                 animation: _animation,
-                        //                 builder: (_, child) => FadeTransition(
-                        //                   opacity: _animation,
-                        //                   child: child,
-                        //                 ),
-                        //                 child: CircularProgressIndicator(
-                        //                   value: paramsState.params.waterLevel /
-                        //                       100,
-                        //                   strokeWidth: 8,
-                        //                 ),
-                        //               )
-                        //             : const CircularProgressIndicator(
-                        //                 value: 0.0,
-                        //                 strokeWidth: 8,
-                        //               ),
-                        //   ),
-                        // ),
                       ],
                     ),
                     Row(
